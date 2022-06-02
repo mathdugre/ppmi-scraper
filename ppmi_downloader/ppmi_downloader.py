@@ -5,12 +5,11 @@ import time
 import shutil
 import zipfile
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-def get_driver(headless, tempdir):
+def get_driver(headless, tempdir, selenium_host=None):
     # Create Chrome webdriver
     options = webdriver.ChromeOptions()
     prefs = {"download.default_directory": tempdir}
@@ -18,6 +17,11 @@ def get_driver(headless, tempdir):
     if headless:
         options.add_argument("--headless")
 
+    if selenium_host:
+        return webdriver.Remote(
+            command_executor=selenium_host,
+            chrome_options=options,
+        )
     return webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
 
 
@@ -53,7 +57,12 @@ class PPMIDownloader:
         self.password = password
 
     def download_imaging_data(
-        self, subject_ids, headless=True, timeout=600, destination_dir="."
+        self,
+        subject_ids,
+        headless=True,
+        timeout=600,
+        destination_dir=".",
+        selenium_host="",
     ):
         """
         Download all imaging data files from PPMI. Requires Google Chrome.
@@ -65,13 +74,14 @@ class PPMIDownloader:
         * headless: if False, run Chrome not headless
         * timeout: file download timeout, in seconds
         * destination_dir: directory where to store the downloaded files
+        * selenium_host: Host and port of a selenium instance
         """
 
         subjectIds = ",".join([str(i) for i in subject_ids])
 
         # Create Chrome webdriver
         tempdir = op.abspath(tempfile.mkdtemp(dir="."))
-        self.driver = get_driver(headless, tempdir)
+        self.driver = get_driver(headless, tempdir, selenium_host)
 
         # Login to PPMI
         self.driver.get("https://ida.loni.usc.edu/login.jsp?project=PPMI")
@@ -142,7 +152,12 @@ class PPMIDownloader:
         shutil.rmtree(tempdir, ignore_errors=True)
 
     def download_metadata(
-        self, file_ids, headless=True, timeout=120, destination_dir="."
+        self,
+        file_ids,
+        headless=True,
+        timeout=120,
+        destination_dir=".",
+        selenium_host="",
     ):
         """
         Download metadata files from PPMI. Requires Google Chrome.
@@ -154,6 +169,7 @@ class PPMIDownloader:
         * headless: if False, run Chrome not headless
         * timeout: file download timeout, in seconds
         * destination_dir: directory where to store the downloaded files
+        * selenium_host: Host and port of a selenium instance
         """
 
         if not type(file_ids) is list:
@@ -168,7 +184,7 @@ class PPMIDownloader:
 
         # Create Chrome webdriver
         tempdir = op.abspath(tempfile.mkdtemp(dir="."))
-        self.driver = get_driver(headless, tempdir)
+        self.driver = get_driver(headless, tempdir, selenium_host)
 
         # Login to PPMI
         self.driver.get("https://ida.loni.usc.edu/login.jsp?project=PPMI")
